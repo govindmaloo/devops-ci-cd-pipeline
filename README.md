@@ -124,6 +124,55 @@ Form pre-filled with student details.
 
 ---
 
+## Jenkins CI/CD Pipeline
+
+### Prerequisites
+
+* EC2 instance (Ubuntu 22.04) — use `aws/setup.sh` to provision
+* Jenkins running on port **8080**
+* MongoDB running on port **27017**
+* Security group ports: 22, 8080, 5000
+
+### Quick EC2 + Jenkins setup
+
+```bash
+# From your local machine
+./aws/setup.sh
+
+# Configure Jenkins pipeline on EC2
+ssh -i ~/Downloads/jenkins-flask-key.pem ubuntu@<EC2_IP>
+cd devops-ci-cd-pipeline && git pull
+sudo bash scripts/setup-jenkins-pipeline.sh
+```
+
+### Pipeline stages
+
+| Stage | Action |
+|-------|--------|
+| **Build** | `pip install -r requirements.txt` |
+| **Test** | `pytest test_app.py` (requires MongoDB) |
+| **Deploy** | Copies app to staging, starts Flask on port **5000** |
+
+### Jenkins access
+
+* URL: `http://<EC2_PUBLIC_IP>:8080`
+* Default admin (after setup script): `admin` / `Jenkins@2026`
+* Pipeline job name: `flask-pipeline`
+
+### Triggers
+
+The `Jenkinsfile` uses **Poll SCM** (`H/2 * * * *`) — Jenkins checks GitHub every 2 minutes for changes on `main`.
+
+### Email notifications
+
+Configure SMTP in Jenkins → **Manage Jenkins → System → Extended E-mail Notification**, then set your email in the Jenkinsfile `post` block or as `NOTIFICATION_EMAIL` env var in the job.
+
+### Staging URL
+
+After a successful deploy: `http://<EC2_PUBLIC_IP>:5000`
+
+---
+
 ## License
 
 MIT License

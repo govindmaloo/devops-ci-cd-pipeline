@@ -1,0 +1,16 @@
+[Unit]
+Description=Flask Student App (Staging)
+After=network.target mongod.service jenkins.service
+
+[Service]
+Type=simple
+User=jenkins
+Group=jenkins
+WorkingDirectory=/var/lib/jenkins/flask-staging
+EnvironmentFile=/var/lib/jenkins/flask-staging/.env
+ExecStart=/var/lib/jenkins/flask-staging/venv/bin/python app.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
