@@ -41,7 +41,10 @@ EOF
 
         stage('Deploy') {
             when {
-                branch 'main'
+                expression {
+                    def branch = env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'main'
+                    return branch.contains('main')
+                }
             }
             steps {
                 echo 'Deploying to staging environment...'
@@ -53,27 +56,39 @@ EOF
     post {
         success {
             echo 'Pipeline succeeded!'
-            mail to: "${env.NOTIFICATION_EMAIL ?: 'govind.maloo@gmail.com'}",
-                 subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: """Pipeline completed successfully.
+            script {
+                try {
+                    mail to: "${env.NOTIFICATION_EMAIL ?: 'govind.maloo@gmail.com'}",
+                         subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                         body: """Pipeline completed successfully.
 
 Job:    ${env.JOB_NAME}
 Build:  #${env.BUILD_NUMBER}
-Branch: ${env.BRANCH_NAME}
+Branch: ${env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'main'}
 URL:    ${env.BUILD_URL}
 """
+                } catch (Exception e) {
+                    echo "Email notification skipped (configure SMTP in Jenkins): ${e.message}"
+                }
+            }
         }
         failure {
             echo 'Pipeline failed!'
-            mail to: "${env.NOTIFICATION_EMAIL ?: 'govind.maloo@gmail.com'}",
-                 subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                 body: """Pipeline failed. Please check the logs.
+            script {
+                try {
+                    mail to: "${env.NOTIFICATION_EMAIL ?: 'govind.maloo@gmail.com'}",
+                         subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                         body: """Pipeline failed. Please check the logs.
 
 Job:    ${env.JOB_NAME}
 Build:  #${env.BUILD_NUMBER}
-Branch: ${env.BRANCH_NAME}
+Branch: ${env.BRANCH_NAME ?: env.GIT_BRANCH ?: 'main'}
 URL:    ${env.BUILD_URL}
 """
+                } catch (Exception e) {
+                    echo "Email notification skipped (configure SMTP in Jenkins): ${e.message}"
+                }
+            }
         }
     }
 }

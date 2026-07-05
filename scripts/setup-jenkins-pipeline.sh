@@ -66,14 +66,21 @@ for i in $(seq 1 30); do
   sleep 5
 done
 
-log "Install Jenkins plugins"
+log "Install Jenkins plugins (minimal set for t3.micro)"
+# Add swap if missing — t3.micro needs this for plugin installs
+if ! swapon --show | grep -q /swapfile; then
+  fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  grep -q /swapfile /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
 PLUGIN_MANAGER="/tmp/jenkins-plugin-manager.jar"
 curl -fsSL "https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.13.2/jenkins-plugin-manager-2.13.2.jar" \
   -o "$PLUGIN_MANAGER"
+systemctl stop jenkins
 java -jar "$PLUGIN_MANAGER" \
   --war /opt/jenkins/jenkins.war \
   --plugin-download-directory "${JENKINS_HOME}/plugins" \
-  --plugins "git workflow-aggregator email-ext pipeline-stage-view workflow-job"
+  --plugins "git workflow-job workflow-cps pipeline-model-definition pipeline-stage-view email-ext"
 chown -R jenkins:jenkins "${JENKINS_HOME}/plugins"
 
 systemctl restart jenkins
