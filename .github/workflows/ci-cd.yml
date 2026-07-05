@@ -81,6 +81,9 @@ jobs:
     environment: staging
 
     steps:
+      - name: Checkout deploy scripts
+        uses: actions/checkout@v4
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
@@ -102,6 +105,9 @@ jobs:
     environment: production
 
     steps:
+      - name: Checkout deploy scripts
+        uses: actions/checkout@v4
+
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
