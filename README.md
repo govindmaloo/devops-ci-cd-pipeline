@@ -173,6 +173,77 @@ After a successful deploy: `http://<EC2_PUBLIC_IP>:5000`
 
 ---
 
+## GitHub Actions CI/CD Pipeline
+
+### Workflow file
+
+[`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml)
+
+### Triggers
+
+| Event | Jobs that run |
+|-------|---------------|
+| Push to `main` | Install → Test → Build |
+| Push to `staging` | Install → Test → Build → **Deploy to Staging** |
+| Release published | Install → Test → Build → **Deploy to Production** |
+
+### Jobs
+
+| Job | Description |
+|-----|-------------|
+| **Install Dependencies & Run Tests** | `pip install` + `pytest` with MongoDB service container |
+| **Build** | Creates `flask-app.tar.gz` deployment artifact |
+| **Deploy to Staging** | SSH deploy to EC2 port **5000** (`staging` branch only) |
+| **Deploy to Production** | SSH deploy to EC2 port **5001** (release tag only) |
+
+### GitHub Secrets
+
+Configure under **Settings → Secrets and variables → Actions**:
+
+| Secret | Description | Example |
+|--------|-------------|---------|
+| `EC2_HOST` | EC2 public IP | `3.109.4.87` |
+| `EC2_SSH_PRIVATE_KEY` | SSH private key (`.pem` contents) | Full content of `jenkins-flask-key.pem` |
+| `MONGO_URI` | MongoDB connection for deployed app | `mongodb://localhost:27017/studentDB` |
+| `STAGING_SECRET_KEY` | Flask secret key for staging | `staging-gh-secret` |
+| `PROD_SECRET_KEY` | Flask secret key for production | `prod-gh-secret` |
+
+Set secrets via CLI:
+
+```bash
+gh secret set EC2_HOST --body "3.109.4.87"
+gh secret set EC2_SSH_PRIVATE_KEY < ~/Downloads/jenkins-flask-key.pem
+gh secret set MONGO_URI --body "mongodb://localhost:27017/studentDB"
+gh secret set STAGING_SECRET_KEY --body "your-staging-secret"
+gh secret set PROD_SECRET_KEY --body "your-prod-secret"
+```
+
+### Deployment URLs
+
+| Environment | URL | Trigger |
+|-------------|-----|---------|
+| Staging (GH Actions) | `http://<EC2_IP>:5000` | Push to `staging` |
+| Production | `http://<EC2_IP>:5001` | Publish a GitHub Release |
+| Staging (Jenkins) | `http://<EC2_IP>:5000` | Jenkins pipeline |
+
+### Create a production release
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+gh release create v1.0.0 --title "v1.0.0" --notes "Production release"
+```
+
+### Branch strategy
+
+```
+main     → CI + build only
+staging  → CI + build + deploy to staging (:5000)
+tag v*   → CI + build + deploy to production (:5001)
+```
+
+---
+
 ## License
 
 MIT License
